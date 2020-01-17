@@ -1,7 +1,7 @@
 .text
 .global _start
 _start:
-	LDR R0,=0X56000050
+	LDR R0,=0X56000050 @
 	MOV R1,#0X00000100
 	STR R1,[R0]
 	LDR R0,=0X56000054
