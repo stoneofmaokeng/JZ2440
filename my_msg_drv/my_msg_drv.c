@@ -9,12 +9,15 @@
 #include <asm/arch/regs-gpio.h>
 #include <asm/hardware.h>
 #include <linux/proc_fs.h>
+#include <linux/spinlock.h>
 #define DBG_PRINTK  printk
 //#define DBG_PRINTK(x...)
 #define MY_LOG_BUF_SIZE     (128)
 static char my_log_buf[MY_LOG_BUF_SIZE];
 static int buf_start = 0;
 static int buf_end = 0;
+static DEFINE_SPINLOCK(my_logbuf_lock);
+DECLARE_WAIT_QUEUE_HEAD(my_log_wait);
 
 static int my_log_buf_full()
 {
@@ -66,6 +69,7 @@ static int myprintk(const char *fmt, va_list args)
             break;
         }
     }
+    wake_up_interruptible(&my_log_wait);
     return i;
 }
 
@@ -73,17 +77,36 @@ static int myprintk(const char *fmt, va_list args)
 static int my_msg_open(struct inode *inode, struct file *file)
 {
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
+	spin_lock_init(&my_logbuf_lock);
 	return 0;
 }
 
 
 static ssize_t my_msg_read(struct file *file, const char __user *buf, size_t count, loff_t * ppos)
 {
+	int error = 0;
+	unsigned long i, j;
+	char c;
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
 	if ((file->f_flags & O_NONBLOCK) && my_log_buf_empty())
 		return -EAGAIN;
 
-	return 0;
+    wait_event_interruptible(my_log_wait,
+                        (buf_start - buf_end));
+    i = 0;
+    spin_lock_irq(&my_logbuf_lock);
+    while ((buf_start != buf_end) && i < count) {
+        //c = LOG_BUF(log_start);
+        c = my_log_buf[log_start];
+        log_start++;
+        spin_unlock_irq(&my_logbuf_lock);
+        __put_user(c,buf);
+        buf++;
+        i++;
+        spin_lock_irq(&my_logbuf_lock);
+    }
+    spin_unlock_irq(&my_logbuf_lock);
+	return i;
 }
 
 static struct file_operations my_msg_fops = {
