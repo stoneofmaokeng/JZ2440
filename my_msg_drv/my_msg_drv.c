@@ -72,12 +72,16 @@ static int myprintk(const char *fmt, va_list args)
     wake_up_interruptible(&my_log_wait);
     return i;
 }
+EXPORT_SYMBOL(myprintk);
 
 
 static int my_msg_open(struct inode *inode, struct file *file)
 {
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
 	spin_lock_init(&my_logbuf_lock);
+    buf_start = 0;
+    buf_end = 0;
+    myprintk("guoxiaoy\n");
 	return 0;
 }
 
@@ -96,9 +100,12 @@ static ssize_t my_msg_read(struct file *file, const char __user *buf, size_t cou
     i = 0;
     spin_lock_irq(&my_logbuf_lock);
     while ((buf_start != buf_end) && i < count) {
-        //c = LOG_BUF(log_start);
-        c = my_log_buf[log_start];
-        log_start++;
+        //c = LOG_BUF(buf_start);
+        if (my_log_buf_empty()) {
+            break;
+        }
+        c = my_log_buf[buf_start];
+        buf_start++;
         spin_unlock_irq(&my_logbuf_lock);
         __put_user(c,buf);
         buf++;
@@ -118,8 +125,8 @@ static struct file_operations my_msg_fops = {
 
 static int my_msg_init(void)
 {
-    DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
     struct proc_dir_entry *entry;
+    DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
     entry = create_proc_entry("mymsg", S_IRUSR, &proc_root);
     if (entry)
         entry->proc_fops = &my_msg_fops;
