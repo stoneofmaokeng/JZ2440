@@ -60,6 +60,7 @@ static int my_get_c(char* c)
 //static int vprintk(const char *fmt, va_list args)
 static int myprintk(const char *fmt, va_list args)
 {
+#if 0
     int i;
 	static char printk_buf[MY_LOG_BUF_SIZE];
 	int printed_len;
@@ -71,8 +72,10 @@ static int myprintk(const char *fmt, va_list args)
     }
     wake_up_interruptible(&my_log_wait);
     return i;
+#endif
+    return 0;
 }
-EXPORT_SYMBOL(myprintk);
+//EXPORT_SYMBOL(myprintk);
 
 
 static int my_msg_open(struct inode *inode, struct file *file)
