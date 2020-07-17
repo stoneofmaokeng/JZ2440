@@ -84,37 +84,26 @@ static int my_get_c(char* c)
     return 1;
 }
 
-//static int vprintk(const char *fmt, va_list args)
-static int myprintk(const char *fmt, va_list args)
+//int sprintf(char * buf, const char *fmt, ...)
+int myprintk(const char *fmt, ...)
 {
-#if 0
-    int i;
 	static char printk_buf[MY_LOG_BUF_SIZE];
 	int printed_len;
-	printed_len = vscnprintf(printk_buf, sizeof(printk_buf), fmt, args);
+	va_list args;
+	int i;
+
+	va_start(args, fmt);
+	printed_len=vsprintf(printk_buf,fmt,args);
+	va_end(args);
     for (i = 0; i < printed_len; i++) {
         if (!my_put_c(printk_buf[i])) {
             break;
         }
     }
     wake_up_interruptible(&my_log_wait);
-    return i;
-#endif
-    return 0;
-}
-#if 0
-int myprintk(char * buf, const char *fmt, ...)
-{
-	va_list args;
-	int i;
-
-	va_start(args, fmt);
-	i=vsprintf(buf,fmt,args);
-	va_end(args);
 	return i;
 }
-//EXPORT_SYMBOL(myprintk);
-#endif
+EXPORT_SYMBOL(myprintk);
 
 
 static int my_msg_open(struct inode *inode, struct file *file)
@@ -123,9 +112,7 @@ static int my_msg_open(struct inode *inode, struct file *file)
 	spin_lock_init(&my_logbuf_lock);
     buf_start = 0;
     buf_end = 0;
-    //myprintk("guoxiaoy\n");
-    //vprintk("guoxiaoy\n");
-    vprintk("device has no volume tag support\n");
+    myprintk("guoxiaoy\n");
 	return 0;
 }
 
