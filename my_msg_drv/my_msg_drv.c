@@ -10,6 +10,33 @@
 #include <asm/hardware.h>
 #include <linux/proc_fs.h>
 #include <linux/spinlock.h>
+
+
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/fs.h>
+#include <linux/kernel.h>
+#include <linux/mm.h>
+#include <linux/major.h>
+#include <linux/string.h>
+#include <linux/errno.h>
+#include <linux/interrupt.h>
+#include <linux/blkdev.h>
+#include <linux/completion.h>
+#include <linux/compat.h>
+#include <linux/chio.h>			/* here are all the ioctls */
+#include <linux/mutex.h>
+
+#include <scsi/scsi.h>
+#include <scsi/scsi_cmnd.h>
+#include <scsi/scsi_driver.h>
+#include <scsi/scsi_ioctl.h>
+#include <scsi/scsi_host.h>
+#include <scsi/scsi_device.h>
+#include <scsi/scsi_eh.h>
+#include <scsi/scsi_dbg.h>
+
+
 #define DBG_PRINTK  printk
 //#define DBG_PRINTK(x...)
 #define MY_LOG_BUF_SIZE     (128)
@@ -75,7 +102,19 @@ static int myprintk(const char *fmt, va_list args)
 #endif
     return 0;
 }
+#if 0
+int myprintk(char * buf, const char *fmt, ...)
+{
+	va_list args;
+	int i;
+
+	va_start(args, fmt);
+	i=vsprintf(buf,fmt,args);
+	va_end(args);
+	return i;
+}
 //EXPORT_SYMBOL(myprintk);
+#endif
 
 
 static int my_msg_open(struct inode *inode, struct file *file)
@@ -84,7 +123,9 @@ static int my_msg_open(struct inode *inode, struct file *file)
 	spin_lock_init(&my_logbuf_lock);
     buf_start = 0;
     buf_end = 0;
-    myprintk("guoxiaoy\n");
+    //myprintk("guoxiaoy\n");
+    //vprintk("guoxiaoy\n");
+    vprintk("device has no volume tag support\n");
 	return 0;
 }
 
