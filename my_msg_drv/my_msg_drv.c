@@ -158,7 +158,7 @@ static ssize_t my_msg_read(struct file *file, const char __user *buf, size_t cou
 		return -EAGAIN;
 
     wait_event_interruptible(my_log_wait,
-                        (buf_start - buf_end));
+                        !my_log_buf_empty());
     i = 0;
     spin_lock_irq(&my_logbuf_lock);
     while (my_get_c(&c) && (i < count)) {
