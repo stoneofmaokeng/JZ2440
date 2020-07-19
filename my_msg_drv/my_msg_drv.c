@@ -20,6 +20,7 @@
 #define MY_LOG_BUF_SIZE     (128)
 static char my_log_buf[MY_LOG_BUF_SIZE];
 static int buf_start = 0;
+static int buf_start_for_read = 0;
 static int buf_end = 0;
 static DEFINE_SPINLOCK(my_logbuf_lock);
 DECLARE_WAIT_QUEUE_HEAD(my_log_wait);
@@ -47,14 +48,21 @@ static int my_log_buf_empty()
     }
 }
 
+static int my_log_buf_empty_for_read()
+{
+    if (buf_end == buf_start_for_read) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 static int my_put_c(char c)
 {
     if (my_log_buf_full()) {
-        printk("my_log_buf is full\n");
-        return 0;
+        buf_start = (buf_start + 1) % MY_LOG_BUF_SIZE;
+        buf_start_for_read = buf_start;
     }
-    //printk("buf_start = %d\n", buf_start);
-    //printk("buf_end = %d\n", buf_end);
     my_log_buf[buf_end] = c;
     buf_end = (buf_end + 1) % MY_LOG_BUF_SIZE;
     return 1;
@@ -67,6 +75,16 @@ static int my_get_c(char* c)
     }
     *c = my_log_buf[buf_start];
     buf_start = (buf_start+ 1) % MY_LOG_BUF_SIZE;
+    return 1;
+}
+
+static int my_get_c_for_read(char* c)
+{
+    if (my_log_buf_empty_for_read()) {
+        return 0;
+    }
+    *c = my_log_buf[buf_start_for_read];
+    buf_start_for_read = (buf_start_for_read+ 1) % MY_LOG_BUF_SIZE;
     return 1;
 }
 
@@ -143,6 +161,7 @@ static DEVICE_ATTR(my_device_test, S_IWUSR|S_IRUSR, show_my_device, set_my_devic
 static int my_msg_open(struct inode *inode, struct file *file)
 {
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
+    buf_start_for_read = buf_start;
     //myprintk("guoxiaoy\n");
 	return 0;
 }
@@ -154,14 +173,14 @@ static ssize_t my_msg_read(struct file *file, const char __user *buf, size_t cou
 	unsigned long i, j;
 	char c;
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
-	if ((file->f_flags & O_NONBLOCK) && my_log_buf_empty())
+	if ((file->f_flags & O_NONBLOCK) && my_log_buf_empty_for_read())
 		return -EAGAIN;
 
     wait_event_interruptible(my_log_wait,
-                        !my_log_buf_empty());
+                        !my_log_buf_empty_for_read());
     i = 0;
     spin_lock_irq(&my_logbuf_lock);
-    while (my_get_c(&c) && (i < count)) {
+    while (my_get_c_for_read(&c) && (i < count)) {
         spin_unlock_irq(&my_logbuf_lock);
         __put_user(c,buf);
         buf++;
