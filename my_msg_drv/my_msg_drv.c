@@ -23,35 +23,11 @@ static int buf_start = 0;
 static int buf_end = 0;
 static DEFINE_SPINLOCK(my_logbuf_lock);
 DECLARE_WAIT_QUEUE_HEAD(my_log_wait);
-
-
-static  char mybuf[100]="123";
-static ssize_t show_my_device(struct device *dev,
-                  struct device_attribute *attr, char *buf)        //cat命令时,将会调用该函数
+static void print_my_log_buf_status()
 {
-    return sprintf(buf, "%s\n", mybuf);
+    printk("buf_start = %d\n", buf_start);
+    printk("buf_end = %d\n", buf_end);
 }
- 
-static ssize_t set_my_device(struct device *dev,
-                 struct device_attribute *attr,
-                 const char *buf, size_t len)        //echo命令时,将会调用该函数
-{
-    sprintf(mybuf, "%s", buf);
-    return len;
-}
-
-
-static int major;
-static struct class *cls;
-
-struct file_operations mytest_ops={
-    .owner  =   THIS_MODULE,    /* 这是一个宏，推向编译模块时自动创建的__this_module变量 */
-};
-
-
-static DEVICE_ATTR(my_device_test, S_IWUSR|S_IRUSR, show_my_device, set_my_device);
-                //定义一个名字为my_device_test的设备属性文件
-
 
 static int my_log_buf_full()
 {
@@ -74,8 +50,11 @@ static int my_log_buf_empty()
 static int my_put_c(char c)
 {
     if (my_log_buf_full()) {
+        printk("my_log_buf is full\n");
         return 0;
     }
+    //printk("buf_start = %d\n", buf_start);
+    //printk("buf_end = %d\n", buf_end);
     my_log_buf[buf_end] = c;
     buf_end = (buf_end + 1) % MY_LOG_BUF_SIZE;
     return 1;
@@ -112,6 +91,54 @@ int myprintk(const char *fmt, ...)
 }
 EXPORT_SYMBOL(myprintk);
 
+static  char mybuf[100]="123";
+static ssize_t show_my_device(struct device *dev,
+                  struct device_attribute *attr, char *buf)        //cat命令时,将会调用该函数
+{
+    return sprintf(buf, "%s\n", mybuf);
+}
+
+ 
+static ssize_t set_my_device(struct device *dev,
+                 struct device_attribute *attr,
+                 const char *buf, size_t len)        //echo命令时,将会调用该函数
+{
+    switch (buf[0]) {
+        case '1':
+            printk("case 1\n");
+            //myprintk("%s, %s, %d\n", __FILE__, __func__, __LINE__);
+            myprintk("123456\n");
+            break;
+        case '2':
+            printk("case 2\n");
+            //myprintk("%s, %s, %d\n", __FILE__, __func__, __LINE__);
+            myprintk("\n");
+            break;
+        case '3':
+            printk("case 3\n");
+            print_my_log_buf_status();
+            break;
+        default:
+            break;
+    }
+    return len;
+}
+
+
+static int major;
+static struct class *cls;
+
+struct file_operations mytest_ops={
+    .owner  =   THIS_MODULE,    /* 这是一个宏，推向编译模块时自动创建的__this_module变量 */
+};
+
+
+static DEVICE_ATTR(my_device_test, S_IWUSR|S_IRUSR, show_my_device, set_my_device);
+                //定义一个名字为my_device_test的设备属性文件
+
+
+
+
 
 static int my_msg_open(struct inode *inode, struct file *file)
 {
@@ -134,13 +161,7 @@ static ssize_t my_msg_read(struct file *file, const char __user *buf, size_t cou
                         (buf_start - buf_end));
     i = 0;
     spin_lock_irq(&my_logbuf_lock);
-    while ((buf_start != buf_end) && i < count) {
-        //c = LOG_BUF(buf_start);
-        if (my_log_buf_empty()) {
-            break;
-        }
-        c = my_log_buf[buf_start];
-        buf_start++;
+    while (my_get_c(&c) && (i < count)) {
         spin_unlock_irq(&my_logbuf_lock);
         __put_user(c,buf);
         buf++;
@@ -171,7 +192,6 @@ static int my_msg_init(void)
 	major=register_chrdev(0,"mytest", &mytest_ops);
 	cls=class_create(THIS_MODULE, "mytest_class");
 	mydev = device_create(cls, NULL, MKDEV(major,0),"mytest_device");    //创建mytest_device设备   
-        //device_create(raw_class, NULL, MKDEV(RAW_MAJOR, 0), "rawctl");
 
 	if(sysfs_create_file(&(mydev->kobj), &dev_attr_my_device_test.attr)){    //在mytest_device设备目录下创建一个my_device_test属性文件
 		return -1;}
