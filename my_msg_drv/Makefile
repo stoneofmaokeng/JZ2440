@@ -2,6 +2,7 @@ KERN_DIR = /home/gxy/linux-2.6.22.6
 
 all:
 	make -C $(KERN_DIR) M=`pwd` modules 
+	cp my_msg_drv.ko ~/tftpboot
 
 clean:
 	make -C $(KERN_DIR) M=`pwd` modules  clean

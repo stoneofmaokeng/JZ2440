@@ -1,5 +1,6 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/delay.h>
@@ -12,39 +13,45 @@
 #include <linux/spinlock.h>
 
 
-#include <linux/module.h>
-#include <linux/init.h>
-#include <linux/fs.h>
-#include <linux/kernel.h>
-#include <linux/mm.h>
-#include <linux/major.h>
-#include <linux/string.h>
-#include <linux/errno.h>
-#include <linux/interrupt.h>
-#include <linux/blkdev.h>
-#include <linux/completion.h>
-#include <linux/compat.h>
-#include <linux/chio.h>			/* here are all the ioctls */
-#include <linux/mutex.h>
-
-#include <scsi/scsi.h>
-#include <scsi/scsi_cmnd.h>
-#include <scsi/scsi_driver.h>
-#include <scsi/scsi_ioctl.h>
-#include <scsi/scsi_host.h>
-#include <scsi/scsi_device.h>
-#include <scsi/scsi_eh.h>
-#include <scsi/scsi_dbg.h>
 
 
-#define DBG_PRINTK  printk
-//#define DBG_PRINTK(x...)
+//#define DBG_PRINTK  printk
+#define DBG_PRINTK(x...)
 #define MY_LOG_BUF_SIZE     (128)
 static char my_log_buf[MY_LOG_BUF_SIZE];
 static int buf_start = 0;
 static int buf_end = 0;
 static DEFINE_SPINLOCK(my_logbuf_lock);
 DECLARE_WAIT_QUEUE_HEAD(my_log_wait);
+
+
+static  char mybuf[100]="123";
+static ssize_t show_my_device(struct device *dev,
+                  struct device_attribute *attr, char *buf)        //cat命令时,将会调用该函数
+{
+    return sprintf(buf, "%s\n", mybuf);
+}
+ 
+static ssize_t set_my_device(struct device *dev,
+                 struct device_attribute *attr,
+                 const char *buf, size_t len)        //echo命令时,将会调用该函数
+{
+    sprintf(mybuf, "%s", buf);
+    return len;
+}
+
+
+static int major;
+static struct class *cls;
+
+struct file_operations mytest_ops={
+    .owner  =   THIS_MODULE,    /* 这是一个宏，推向编译模块时自动创建的__this_module变量 */
+};
+
+
+static DEVICE_ATTR(my_device_test, S_IWUSR|S_IRUSR, show_my_device, set_my_device);
+                //定义一个名字为my_device_test的设备属性文件
+
 
 static int my_log_buf_full()
 {
@@ -109,10 +116,7 @@ EXPORT_SYMBOL(myprintk);
 static int my_msg_open(struct inode *inode, struct file *file)
 {
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
-	spin_lock_init(&my_logbuf_lock);
-    buf_start = 0;
-    buf_end = 0;
-    myprintk("guoxiaoy\n");
+    //myprintk("guoxiaoy\n");
 	return 0;
 }
 
@@ -156,17 +160,30 @@ static struct file_operations my_msg_fops = {
 
 static int my_msg_init(void)
 {
+	struct device *mydev;  
     struct proc_dir_entry *entry;
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
+	spin_lock_init(&my_logbuf_lock);
     entry = create_proc_entry("mymsg", S_IRUSR, &proc_root);
     if (entry)
         entry->proc_fops = &my_msg_fops;
+
+	major=register_chrdev(0,"mytest", &mytest_ops);
+	cls=class_create(THIS_MODULE, "mytest_class");
+	mydev = device_create(cls, NULL, MKDEV(major,0),"mytest_device");    //创建mytest_device设备   
+        //device_create(raw_class, NULL, MKDEV(RAW_MAJOR, 0), "rawctl");
+
+	if(sysfs_create_file(&(mydev->kobj), &dev_attr_my_device_test.attr)){    //在mytest_device设备目录下创建一个my_device_test属性文件
+		return -1;}
 	return 0;
 }
 
 static void my_msg_exit(void)
 {
-    DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
+	DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
+	device_destroy(cls, MKDEV(major,0));
+	class_destroy(cls);
+	unregister_chrdev(major, "mytest");
 }
 
 module_init(my_msg_init);
