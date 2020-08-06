@@ -9,9 +9,6 @@
 #include <asm/arch/regs-gpio.h>
 #include <asm/hardware.h>
 
-#define DBG_PRINTK  printk
-//#define DBG_PRINTK(x...)
-
 static struct class *firstdrv_class;
 static struct class_device	*firstdrv_class_dev;
 
@@ -60,15 +57,12 @@ static struct file_operations first_drv_fops = {
 int major;
 static int first_drv_init(void)
 {
-    DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
 	major = register_chrdev(0, "first_drv", &first_drv_fops); // ×¢²á, ¸æËßÄÚºË
 
-    DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
 	firstdrv_class = class_create(THIS_MODULE, "firstdrv");
 
 	firstdrv_class_dev = class_device_create(firstdrv_class, NULL, MKDEV(major, 0), NULL, "xyz"); /* /dev/xyz */
 
-    DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
 	gpfcon = (volatile unsigned long *)ioremap(0x56000050, 16);
 	gpfdat = gpfcon + 1;
 
@@ -79,11 +73,9 @@ static void first_drv_exit(void)
 {
 	unregister_chrdev(major, "first_drv"); // Ð¶ÔØ
 
-    DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
 	class_device_unregister(firstdrv_class_dev);
 	class_destroy(firstdrv_class);
 	iounmap(gpfcon);
-    DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
 }
 
 module_init(first_drv_init);

@@ -18,8 +18,6 @@
 
 #define BUF_SIZE    (1024*1024)
 
-#define SRC_BASE_ADDR (0x40000000)
-#define DST_BASE_ADDR (0x40100000)
 #define DMA0_BASE_ADDR (0x4B000000)
 
 //#define DBG_PRINTK  printk
@@ -31,8 +29,8 @@ static int major;
 static struct class *cls;
 static volatile dma_flag;
 
-static void *src = (void*)(0x40000000);
-static void *dst = (void*)(0x40100000);
+static void *src;
+static void *dst;
 static dma_addr_t src_phys;
 static dma_addr_t dst_phys;
 
@@ -108,16 +106,13 @@ static ssize_t set_my_device(struct device *dev,
         case '1':
             printk("case 1\n");
             //myprintk("%s, %s, %d\n", __FILE__, __func__, __LINE__);
-            myprintk("123456\n");
             break;
         case '2':
             printk("case 2\n");
             //myprintk("%s, %s, %d\n", __FILE__, __func__, __LINE__);
-            myprintk("\n");
             break;
         case '3':
             printk("case 3\n");
-            print_my_log_buf_status();
             break;
         default:
             break;
