@@ -14,7 +14,7 @@
 
 
 static struct class *leds_class;
-static struct class_device	*leds_class_devs[4];
+static struct class_device    *leds_class_devs[4];
 
 
 /* bit0<=>D10, 0:亮, 1:灭 
@@ -37,10 +37,10 @@ static unsigned long gpio_va;
  */
 static int s3c24xx_leds_open(struct inode *inode, struct file *file)
 {
-	int minor = MINOR(inode->i_rdev); //MINOR(inode->i_cdev);
+    int minor = MINOR(inode->i_rdev); //MINOR(inode->i_cdev);
 
-	switch(minor)
-	{
+    switch(minor)
+    {
         case 0: /* /dev/leds */
         {
             // 配置3引脚为输出
@@ -104,8 +104,8 @@ static int s3c24xx_leds_open(struct inode *inode, struct file *file)
             break;
         }
         
-	}
-	
+    }
+    
     return 0;
 }
 
@@ -114,7 +114,7 @@ static int s3c24xx_leds_open(struct inode *inode, struct file *file)
 static int s3c24xx_leds_read(struct file *filp, char __user *buff, 
                                          size_t count, loff_t *offp)
 {
-	int minor = MINOR(filp->f_dentry->d_inode->i_rdev);
+    int minor = MINOR(filp->f_dentry->d_inode->i_rdev);
     char val;
 
     switch (minor)
@@ -164,7 +164,7 @@ static int s3c24xx_leds_read(struct file *filp, char __user *buff,
 static ssize_t s3c24xx_leds_write(struct file *file, const char __user *buf, size_t count, loff_t * ppos)
 {
     //int minor = MINOR(inode->i_rdev); //MINOR(inode->i_cdev);
-	int minor = MINOR(file->f_dentry->d_inode->i_rdev);
+    int minor = MINOR(file->f_dentry->d_inode->i_rdev);
     char val;
 
     copy_from_user(&val, buf, 1);
@@ -251,8 +251,8 @@ static ssize_t s3c24xx_leds_write(struct file *file, const char __user *buf, siz
 static struct file_operations s3c24xx_leds_fops = {
     .owner  =   THIS_MODULE,    /* 这是一个宏，推向编译模块时自动创建的__this_module变量 */
     .open   =   s3c24xx_leds_open,     
-	.read	=	s3c24xx_leds_read,	   
-	.write	=	s3c24xx_leds_write,	   
+    .read    =    s3c24xx_leds_read,       
+    .write    =    s3c24xx_leds_write,       
 };
 
 /*
@@ -263,12 +263,12 @@ static int __init s3c24xx_leds_init(void)
 
 {
     int ret;
-	int minor = 0;
+    int minor = 0;
 
     gpio_va = ioremap(0x56000000, 0x100000);
-	if (!gpio_va) {
-		return -EIO;
-	}
+    if (!gpio_va) {
+        return -EIO;
+    }
 
     /* 注册字符设备
      * 参数为主设备号、设备名字、file_operations结构；
@@ -282,20 +282,20 @@ static int __init s3c24xx_leds_init(void)
       return ret;
     }
 
-	leds_class = class_create(THIS_MODULE, "leds");
-	if (IS_ERR(leds_class))
-		return PTR_ERR(leds_class);
+    leds_class = class_create(THIS_MODULE, "leds");
+    if (IS_ERR(leds_class))
+        return PTR_ERR(leds_class);
     
 
 
-	leds_class_devs[0] = class_device_create(leds_class, NULL, MKDEV(LED_MAJOR, 0), NULL, "leds"); /* /dev/leds */
-	
-	for (minor = 1; minor < 4; minor++)  /* /dev/led1,2,3 */
-	{
-		leds_class_devs[minor] = class_device_create(leds_class, NULL, MKDEV(LED_MAJOR, minor), NULL, "led%d", minor);
-		if (unlikely(IS_ERR(leds_class_devs[minor])))
-			return PTR_ERR(leds_class_devs[minor]);
-	}
+    leds_class_devs[0] = class_device_create(leds_class, NULL, MKDEV(LED_MAJOR, 0), NULL, "leds"); /* /dev/leds */
+    
+    for (minor = 1; minor < 4; minor++)  /* /dev/led1,2,3 */
+    {
+        leds_class_devs[minor] = class_device_create(leds_class, NULL, MKDEV(LED_MAJOR, minor), NULL, "led%d", minor);
+        if (unlikely(IS_ERR(leds_class_devs[minor])))
+            return PTR_ERR(leds_class_devs[minor]);
+    }
         
     printk(DEVICE_NAME " initialized\n");
     return 0;
@@ -306,15 +306,15 @@ static int __init s3c24xx_leds_init(void)
  */
 static void __exit s3c24xx_leds_exit(void)
 {
-	int minor;
+    int minor;
     /* 卸载驱动程序 */
     unregister_chrdev(LED_MAJOR, DEVICE_NAME);
 
-	for (minor = 0; minor < 4; minor++)
-	{
-		class_device_unregister(leds_class_devs[minor]);
-	}
-	class_destroy(leds_class);
+    for (minor = 0; minor < 4; minor++)
+    {
+        class_device_unregister(leds_class_devs[minor]);
+    }
+    class_destroy(leds_class);
     iounmap(gpio_va);
 }
 

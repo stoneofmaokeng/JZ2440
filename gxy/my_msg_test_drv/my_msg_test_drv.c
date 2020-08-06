@@ -15,7 +15,7 @@
 static int my_msg_test_init(void)
 {
     myprintk("%s, %s, %d\n", __FILE__, __func__, __LINE__);
-	return 0;
+    return 0;
 }
 
 static void my_msg_test_exit(void)

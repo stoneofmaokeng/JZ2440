@@ -13,47 +13,47 @@
 
 void print_usage(char *name)
 {
-	printf("Usage:\n");
-	printf("%s <nodma | dma>\n", name);
+    printf("Usage:\n");
+    printf("%s <nodma | dma>\n", name);
 }
 
 
 int main(int argc, char **argv)
 {
-	int fd;
-	
- 	if (argc != 2)
-	{
-		print_usage(argv[0]);
-		return -1;
-	}
+    int fd;
+    
+     if (argc != 2)
+    {
+        print_usage(argv[0]);
+        return -1;
+    }
 
-	fd = open("/dev/dma", O_RDWR);
-	if (fd < 0)
-	{
-		printf("can't open /dev/dma\n");
-		return -1;
-	}
+    fd = open("/dev/dma", O_RDWR);
+    if (fd < 0)
+    {
+        printf("can't open /dev/dma\n");
+        return -1;
+    }
 
-	if (strcmp(argv[1], "nodma") == 0)
-	{
-		while (1)
-		{
-			ioctl(fd, MEM_CPY_NO_DMA);
-		}
-	}
-	else if (strcmp(argv[1], "dma") == 0)
-	{
-		while (1)
-		{
-			ioctl(fd, MEM_CPY_DMA);
-		}
-	}
-	else
-	{
-		print_usage(argv[0]);
-		return -1;
-	}
-	return 0; 	
+    if (strcmp(argv[1], "nodma") == 0)
+    {
+        while (1)
+        {
+            ioctl(fd, MEM_CPY_NO_DMA);
+        }
+    }
+    else if (strcmp(argv[1], "dma") == 0)
+    {
+        while (1)
+        {
+            ioctl(fd, MEM_CPY_DMA);
+        }
+    }
+    else
+    {
+        print_usage(argv[0]);
+        return -1;
+    }
+    return 0;     
 }
 

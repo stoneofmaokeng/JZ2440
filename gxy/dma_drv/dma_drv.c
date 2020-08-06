@@ -13,7 +13,7 @@
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
 
-#define CP_MEM_NO_DMA   0
+#efine CP_MEM_NO_DMA   0
 #define CP_MEM_DMA   1
 
 #define BUF_SIZE    (1024*1024)
@@ -35,15 +35,15 @@ static dma_addr_t src_phys;
 static dma_addr_t dst_phys;
 
 struct dma_regs {
-	unsigned long disrc0; 
-	unsigned long disrcc0;
-	unsigned long didst0;
-	unsigned long didstc0;
-	unsigned long dcon0;
-	unsigned long dstat0;
-	unsigned long dcsrc0;
-	unsigned long dcdst0;
-	unsigned long dmasktrig0;
+    unsigned long disrc0; 
+    unsigned long disrcc0;
+    unsigned long didst0;
+    unsigned long didstc0;
+    unsigned long dcon0;
+    unsigned long dstat0;
+    unsigned long dcsrc0;
+    unsigned long dcdst0;
+    unsigned long dmasktrig0;
 };
 
 static volatile struct dma_regs* s3c_dma_regs;
@@ -126,7 +126,7 @@ static DEVICE_ATTR(my_device_test, S_IWUSR|S_IRUSR, show_my_device, set_my_devic
 static int dma_open(struct inode *inode, struct file *file)
 {
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
-	return 0;
+    return 0;
 }
 
 static struct file_operations dma_fops = {
@@ -144,7 +144,7 @@ static irqreturn_t s3c_dma_irq(int irq, void *dev_id)
 static int dma_init(void)
 {
     int ret;
-	struct device *mydev;  
+    struct device *mydev;  
     struct proc_dir_entry *entry;
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
 
@@ -182,13 +182,13 @@ static int dma_init(void)
         goto irq_error;
     }
 
-	major=register_chrdev(0,"dma", &dma_ops);
-	cls=class_create(THIS_MODULE, "dma_class");
-	mydev = device_create(cls, NULL, MKDEV(major,0),"dma_device");    //创建dma_device设备   
+    major=register_chrdev(0,"dma", &dma_ops);
+    cls=class_create(THIS_MODULE, "dma_class");
+    mydev = device_create(cls, NULL, MKDEV(major,0),"dma_device");    //创建dma_device设备   
 
-	if(sysfs_create_file(&(mydev->kobj), &dev_attr_my_device_test.attr)){    //在dma_device设备目录下创建一个my_device_test属性文件
-		return -1;}
-	return 0;
+    if(sysfs_create_file(&(mydev->kobj), &dev_attr_my_device_test.attr)){    //在dma_device设备目录下创建一个my_device_test属性文件
+        return -1;}
+    return 0;
 
 irq_error:
 dma_regs_mmap_error:
@@ -204,9 +204,9 @@ static void dma_exit(void)
     dma_free_writecombine(NULL, BUF_SIZE, src, src_phys);
     iounmap((void *)DMA0_BASE_ADDR);
     free_irq(IRQ_DMA0, NULL);
-	device_destroy(cls, MKDEV(major,0));
-	class_destroy(cls);
-	unregister_chrdev(major, "dma");
+    device_destroy(cls, MKDEV(major,0));
+    class_destroy(cls);
+    unregister_chrdev(major, "dma");
 }
 
 module_init(dma_init);

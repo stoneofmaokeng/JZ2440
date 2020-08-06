@@ -13,27 +13,27 @@
 struct proc_dir_entry *myentry;
 
 static ssize_t mymsg_read(struct file *file, char __user *buf,
-			 size_t count, loff_t *ppos)
+             size_t count, loff_t *ppos)
 {
-	printk("mymsg_read\n");
-	return 0;
+    printk("mymsg_read\n");
+    return 0;
 }
 
 const struct file_operations proc_mymsg_operations = {
-	.read = mymsg_read,
+    .read = mymsg_read,
 };
 
 static int mymsg_init(void)
 {
-	myentry = create_proc_entry("mymsg", S_IRUSR, &proc_root);
-	if (myentry)
-		myentry->proc_fops = &proc_mymsg_operations;
-	return 0;
+    myentry = create_proc_entry("mymsg", S_IRUSR, &proc_root);
+    if (myentry)
+        myentry->proc_fops = &proc_mymsg_operations;
+    return 0;
 }
 
 static void mymsg_exit(void)
 {
-	remove_proc_entry("mymsg", &proc_root);
+    remove_proc_entry("mymsg", &proc_root);
 }
 
 module_init(mymsg_init);

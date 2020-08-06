@@ -17,15 +17,15 @@ const struct file_operations proc_mymsg_operations = {
 
 static int mymsg_init(void)
 {
-	myentry = create_proc_entry("mymsg", S_IRUSR, &proc_root);
-	if (myentry)
-		myentry->proc_fops = &proc_mymsg_operations;
-	return 0;
+    myentry = create_proc_entry("mymsg", S_IRUSR, &proc_root);
+    if (myentry)
+        myentry->proc_fops = &proc_mymsg_operations;
+    return 0;
 }
 
 static void mymsg_exit(void)
 {
-	remove_proc_entry("mymsg", &proc_root);
+    remove_proc_entry("mymsg", &proc_root);
 }
 
 module_init(mymsg_init);

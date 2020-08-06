@@ -23,97 +23,97 @@ static DECLARE_WAIT_QUEUE_HEAD(mymsg_waitq);
 
 static int is_mylog_empty(void)
 {
-	return (mylog_r == mylog_w);
+    return (mylog_r == mylog_w);
 }
 
 static int is_mylog_full(void)
 {
-	if ((mylog_w + 1)% MYLOG_BUF_LEN == mylog_r);
+    if ((mylog_w + 1)% MYLOG_BUF_LEN == mylog_r);
 }
 
 static void mylog_putc(char c)
 {
-	if (is_mylog_full())
-	{
-		/* 丢弃一个数据 */
-		mylog_r = (mylog_r + 1) % MYLOG_BUF_LEN;
-	}
+    if (is_mylog_full())
+    {
+        /* 丢弃一个数据 */
+        mylog_r = (mylog_r + 1) % MYLOG_BUF_LEN;
+    }
 
-	mylog_buf[mylog_w] = c;
-	mylog_w = (mylog_w + 1) % MYLOG_BUF_LEN;
+    mylog_buf[mylog_w] = c;
+    mylog_w = (mylog_w + 1) % MYLOG_BUF_LEN;
 
-	/* 唤醒等待数据的进程 */	
-    wake_up_interruptible(&mymsg_waitq);   /* 唤醒休眠的进程 */	
+    /* 唤醒等待数据的进程 */    
+    wake_up_interruptible(&mymsg_waitq);   /* 唤醒休眠的进程 */    
 }
 
 static int mylog_getc(char *p)
 {
-	if (is_mylog_empty())
-	{
-		return 0;
-	}
-	*p = mylog_buf[mylog_r];
-	mylog_r = (mylog_r + 1) % MYLOG_BUF_LEN;
-	return 1;
+    if (is_mylog_empty())
+    {
+        return 0;
+    }
+    *p = mylog_buf[mylog_r];
+    mylog_r = (mylog_r + 1) % MYLOG_BUF_LEN;
+    return 1;
 }
 
 int myprintk(const char *fmt, ...)
 {
-	va_list args;
-	int i;
-	int j;
+    va_list args;
+    int i;
+    int j;
 
-	va_start(args, fmt);
-	i = vsnprintf(tmp_buf, INT_MAX, fmt, args);
-	va_end(args);
-	
-	for (j = 0; j < i; j++)
-		mylog_putc(tmp_buf[j]);
-		
-	return i;
+    va_start(args, fmt);
+    i = vsnprintf(tmp_buf, INT_MAX, fmt, args);
+    va_end(args);
+    
+    for (j = 0; j < i; j++)
+        mylog_putc(tmp_buf[j]);
+        
+    return i;
 }
 
 static ssize_t mymsg_read(struct file *file, char __user *buf,
-			 size_t count, loff_t *ppos)
+             size_t count, loff_t *ppos)
 {
-	int error = 0;
-	int i = 0;
-	char c;
+    int error = 0;
+    int i = 0;
+    char c;
 
-	/* 把mylog_buf的数据copy_to_user, return */
-	if ((file->f_flags & O_NONBLOCK) && is_mylog_empty())
-		return -EAGAIN;
+    /* 把mylog_buf的数据copy_to_user, return */
+    if ((file->f_flags & O_NONBLOCK) && is_mylog_empty())
+        return -EAGAIN;
 
-	error = wait_event_interruptible(mymsg_waitq, !is_mylog_empty());
+    error = wait_event_interruptible(mymsg_waitq, !is_mylog_empty());
 
-	/* copy_to_user */
-	while (!error && (mylog_getc(&c)) && i < count) {
-		error = __put_user(c, buf);
-		buf++;
-		i++;
-	}
-	
-	if (!error)
-		error = i;
-	
-	return error;
+    /* copy_to_user */
+    while (!error && (mylog_getc(&c)) && i < count) {
+        error = __put_user(c, buf);
+        buf++;
+        i++;
+    }
+    
+    if (!error)
+        error = i;
+    
+    return error;
 }
 
 const struct file_operations proc_mymsg_operations = {
-	.read = mymsg_read,
+    .read = mymsg_read,
 };
 
 static int mymsg_init(void)
-{	
-	myentry = create_proc_entry("mymsg", S_IRUSR, &proc_root);
-	if (myentry)
-		myentry->proc_fops = &proc_mymsg_operations;
-	return 0;
+{    
+    myentry = create_proc_entry("mymsg", S_IRUSR, &proc_root);
+    if (myentry)
+        myentry->proc_fops = &proc_mymsg_operations;
+    return 0;
 }
 
 static void mymsg_exit(void)
 {
-	remove_proc_entry("mymsg", &proc_root);
+    remove_proc_entry("mymsg", &proc_root);
 }
 
 module_init(mymsg_init);

@@ -91,21 +91,21 @@ static int my_get_c_for_read(char* c)
 //int sprintf(char * buf, const char *fmt, ...)
 int myprintk(const char *fmt, ...)
 {
-	static char printk_buf[MY_LOG_BUF_SIZE];
-	int printed_len;
-	va_list args;
-	int i;
+    static char printk_buf[MY_LOG_BUF_SIZE];
+    int printed_len;
+    va_list args;
+    int i;
 
-	va_start(args, fmt);
-	printed_len=vsprintf(printk_buf,fmt,args);
-	va_end(args);
+    va_start(args, fmt);
+    printed_len=vsprintf(printk_buf,fmt,args);
+    va_end(args);
     for (i = 0; i < printed_len; i++) {
         if (!my_put_c(printk_buf[i])) {
             break;
         }
     }
     wake_up_interruptible(&my_log_wait);
-	return i;
+    return i;
 }
 EXPORT_SYMBOL(myprintk);
 
@@ -163,18 +163,18 @@ static int my_msg_open(struct inode *inode, struct file *file)
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
     buf_start_for_read = buf_start;
     //myprintk("guoxiaoy\n");
-	return 0;
+    return 0;
 }
 
 
 static ssize_t my_msg_read(struct file *file, const char __user *buf, size_t count, loff_t * ppos)
 {
-	int error = 0;
-	unsigned long i, j;
-	char c;
+    int error = 0;
+    unsigned long i, j;
+    char c;
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
-	if ((file->f_flags & O_NONBLOCK) && my_log_buf_empty_for_read())
-		return -EAGAIN;
+    if ((file->f_flags & O_NONBLOCK) && my_log_buf_empty_for_read())
+        return -EAGAIN;
 
     wait_event_interruptible(my_log_wait,
                         !my_log_buf_empty_for_read());
@@ -188,41 +188,41 @@ static ssize_t my_msg_read(struct file *file, const char __user *buf, size_t cou
         spin_lock_irq(&my_logbuf_lock);
     }
     spin_unlock_irq(&my_logbuf_lock);
-	return i;
+    return i;
 }
 
 static struct file_operations my_msg_fops = {
     .owner  =   THIS_MODULE,    /* 这是一个宏，推向编译模块时自动创建的__this_module变量 */
     .open   =   my_msg_open,     
-	.read	=	my_msg_read,	   
+    .read    =    my_msg_read,       
 };
 
 
 static int my_msg_init(void)
 {
-	struct device *mydev;  
+    struct device *mydev;  
     struct proc_dir_entry *entry;
     DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
-	spin_lock_init(&my_logbuf_lock);
+    spin_lock_init(&my_logbuf_lock);
     entry = create_proc_entry("mymsg", S_IRUSR, &proc_root);
     if (entry)
         entry->proc_fops = &my_msg_fops;
 
-	major=register_chrdev(0,"mytest", &mytest_ops);
-	cls=class_create(THIS_MODULE, "mytest_class");
-	mydev = device_create(cls, NULL, MKDEV(major,0),"mytest_device");    //创建mytest_device设备   
+    major=register_chrdev(0,"mytest", &mytest_ops);
+    cls=class_create(THIS_MODULE, "mytest_class");
+    mydev = device_create(cls, NULL, MKDEV(major,0),"mytest_device");    //创建mytest_device设备   
 
-	if(sysfs_create_file(&(mydev->kobj), &dev_attr_my_device_test.attr)){    //在mytest_device设备目录下创建一个my_device_test属性文件
-		return -1;}
-	return 0;
+    if(sysfs_create_file(&(mydev->kobj), &dev_attr_my_device_test.attr)){    //在mytest_device设备目录下创建一个my_device_test属性文件
+        return -1;}
+    return 0;
 }
 
 static void my_msg_exit(void)
 {
-	DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
-	device_destroy(cls, MKDEV(major,0));
-	class_destroy(cls);
-	unregister_chrdev(major, "mytest");
+    DBG_PRINTK(KERN_WARNING"%s, %s, %d\n", __FILE__, __func__, __LINE__);
+    device_destroy(cls, MKDEV(major,0));
+    class_destroy(cls);
+    unregister_chrdev(major, "mytest");
 }
 
 module_init(my_msg_init);
