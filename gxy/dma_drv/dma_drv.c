@@ -12,13 +12,15 @@
 #include <linux/proc_fs.h>
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
+#include <linux/dma-mapping.h>
 
-#efine CP_MEM_NO_DMA   0
+
+#define CP_MEM_NO_DMA   0
 #define CP_MEM_DMA   1
 
-#define BUF_SIZE    (1024*1024)
+#define BUF_SIZE    (512*1024)
 
-#define DMA0_BASE_ADDR (0x4B000000)
+#define DMA3_BASE_ADDR (0x4B0000C0)
 
 //#define DBG_PRINTK  printk
 #define DBG_PRINTK(x...)
@@ -35,15 +37,15 @@ static dma_addr_t src_phys;
 static dma_addr_t dst_phys;
 
 struct dma_regs {
-    unsigned long disrc0; 
-    unsigned long disrcc0;
-    unsigned long didst0;
-    unsigned long didstc0;
-    unsigned long dcon0;
-    unsigned long dstat0;
-    unsigned long dcsrc0;
-    unsigned long dcdst0;
-    unsigned long dmasktrig0;
+    unsigned long disrc3; 
+    unsigned long disrcc3;
+    unsigned long didst3;
+    unsigned long didstc3;
+    unsigned long dcon3;
+    unsigned long dstat3;
+    unsigned long dcsrc3;
+    unsigned long dcdst3;
+    unsigned long dmasktrig3;
 };
 
 static volatile struct dma_regs* s3c_dma_regs;
@@ -162,7 +164,7 @@ static int dma_init(void)
     }
 
     //Ó³ÉäDMA¼Ä´æÆ÷
-    s3c_dma_regs = (struct dma_regs *)ioremap(DMA0_BASE_ADDR, sizeof(struct dma_regs));
+    s3c_dma_regs = (struct dma_regs *)ioremap(DMA3_BASE_ADDR, sizeof(struct dma_regs));
     if (s3c_dma_regs  == NULL) {
         printk("dma_regs mmap fail\n");
         goto dma_regs_mmap_error;
@@ -176,7 +178,7 @@ static int dma_init(void)
     s3c_dma_regs->dcon0 = (BUF_SIZE/2) | (1 << 20) | (1 << 22);  
 
     //ÉêÇëDMAÖÐ¶Ï
-    ret = request_irq(IRQ_DMA0, s3c_dma_irq, 0, "s3c_dma", 1);
+    ret = request_irq(IRQ_DMA3, s3c_dma_irq, 0, "s3c_dma", 1);
     if (ret < 0) {
         printk("irq fail\n");
         goto irq_error;
@@ -202,8 +204,8 @@ static void dma_exit(void)
 {
     dma_free_writecombine(NULL, BUF_SIZE, dst, dst_phys);
     dma_free_writecombine(NULL, BUF_SIZE, src, src_phys);
-    iounmap((void *)DMA0_BASE_ADDR);
-    free_irq(IRQ_DMA0, NULL);
+    iounmap((void *)DMA3_BASE_ADDR);
+    free_irq(IRQ_DMA3, NULL);
     device_destroy(cls, MKDEV(major,0));
     class_destroy(cls);
     unregister_chrdev(major, "dma");
