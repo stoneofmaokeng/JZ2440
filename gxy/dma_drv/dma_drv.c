@@ -72,13 +72,24 @@ int dma_ioctl(struct inode * inode, struct file * file, unsigned int cmd, unsign
             break;
         case CP_MEM_DMA:
             printk("cp use dma\n");
+            //ÉèÖÃDMA¼Ä´æÆ÷
+            s3c_dma_regs->disrc3 = src_phys;
+            s3c_dma_regs->disrcc3 = 0;
+            s3c_dma_regs->didst3 = dst_phys;
+            s3c_dma_regs->didstc3 = 0; 
+            s3c_dma_regs->dcon3 = (1 << 30)|(1 << 29)|(0 << 28)|(1 << 27)|(0 << 23)|(1<<22)|(0<<20)|(BUF_SIZE<<0);
             //Æô¶¯DMA
             dma_flag = 0;
-            s3c_dma_regs->dmasktrig0 = (1 << 1);
-            reg_value = s3c_dma_regs->dmasktrig0;
-            reg_value |= 1;
-            s3c_dma_regs->dmasktrig0 = reg_value;
+            s3c_dma_regs->dmasktrig3 = (1 << 1) | (1 << 0);
+            printk("wait\n");
             wait_event_interruptible(dma_wait, dma_flag);
+            printk("wait over\n");
+            ret =  memcmp(src, dst, BUF_SIZE);
+            if (ret == 0) {
+                printk("mem cp dma ok\n");
+            } else {
+                printk("mem cp dma fail\n");
+            }
             break;
         default:
             break;
@@ -138,6 +149,7 @@ static struct file_operations dma_fops = {
 
 static irqreturn_t s3c_dma_irq(int irq, void *dev_id)
 {
+    printk("dma interrupt\n");
     dma_flag = 1;
     wake_up_interruptible(&dma_wait);
     return IRQ_HANDLED;
@@ -170,12 +182,6 @@ static int dma_init(void)
         goto dma_regs_mmap_error;
     }
 
-    //ÉèÖÃDMA¼Ä´æÆ÷
-    s3c_dma_regs->disrc0 = src_phys;
-    s3c_dma_regs->disrcc0 = 0;
-    s3c_dma_regs->didst0 = dst_phys;
-    s3c_dma_regs->didstc0 = 0; //??
-    s3c_dma_regs->dcon0 = (BUF_SIZE/2) | (1 << 20) | (1 << 22);  
 
     //ÉêÇëDMAÖÐ¶Ï
     ret = request_irq(IRQ_DMA3, s3c_dma_irq, 0, "s3c_dma", 1);
@@ -202,13 +208,14 @@ dst_dma_error:
 
 static void dma_exit(void)
 {
-    dma_free_writecombine(NULL, BUF_SIZE, dst, dst_phys);
-    dma_free_writecombine(NULL, BUF_SIZE, src, src_phys);
-    iounmap((void *)DMA3_BASE_ADDR);
-    free_irq(IRQ_DMA3, NULL);
+    //free_irq(IRQ_DMA3, NULL);
+    iounmap(s3c_dma_regs);
     device_destroy(cls, MKDEV(major,0));
     class_destroy(cls);
     unregister_chrdev(major, "dma");
+    dma_free_writecombine(NULL, BUF_SIZE, dst, dst_phys);
+    dma_free_writecombine(NULL, BUF_SIZE, src, src_phys);
+    free_irq(IRQ_DMA3, 1);
 }
 
 module_init(dma_init);

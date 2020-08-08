@@ -12,7 +12,7 @@ int main(int argc, char **argv)
     int fd;
     int val = 1;
     unsigned long temp;
-    fd = open("/dev/dma", O_RDWR);
+    fd = open("/dev/dma_device", O_RDWR);
     if (fd < 0) {
         printf("can't open!\n");
     }
