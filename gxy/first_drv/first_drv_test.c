@@ -8,8 +8,8 @@ int main(int argc, char **argv)
 {
     int fd;
     int i;
-    int val;
-    fd = open("/dev/first_drv", O_RDWR);
+    int val[1];
+    fd = open("/dev/first_drv_device", O_RDWR);
     if (fd < 0) {
         printf("can't open!\n");
     }
@@ -19,11 +19,11 @@ int main(int argc, char **argv)
         return 0;
     }
     if (!strcmp(argv[1], "on")) {
-        val = 1;
+        val[0] = 1;
     } else {
-        val = 0;
+        val[0] = 0;
     }
 
-    write(fd, &val, 4);
+    write(fd, val, 4);
     return 0;
 }
