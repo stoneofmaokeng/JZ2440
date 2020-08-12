@@ -31,6 +31,7 @@ enum cmd{
 static int debug_regeditor(struct inode * inode, struct file * file, unsigned int cmd, unsigned long arg)
 {
     long buf[2];
+    long val;
     if (copy_from_user(buf, (const void __user *)arg, 8)) {
         printk("copy_to_user failed\n");
         return -EFAULT;
@@ -44,30 +45,35 @@ static int debug_regeditor(struct inode * inode, struct file * file, unsigned in
 
     switch (cmd) {
         case R8:
-            *reg = *reg & 0xff;
-            if (copy_to_user((void __user *)(arg + 4), (const void *)reg, 4)) {
+            val = *reg;
+            val = val & 0xff;
+            if (copy_to_user((void __user *)(arg + 4), (const void *)&val, 4)) {
                 printk("copy_to_user failed\n");
                 return -EFAULT;
             }
             break;
         case R16:
-            *reg = *reg & 0xffff;
-            if (copy_to_user((void __user *)(arg + 4), (const void *)reg, 4)) {
+            val = *reg;
+            val = val & 0xffff;
+            if (copy_to_user((void __user *)(arg + 4), (const void *)&val, 4)) {
                 printk("copy_to_user failed\n");
                 return -EFAULT;
             }
             break;
         case R32:
-            if (copy_to_user((void __user *)(arg + 4), (const void *)reg, 4)) {
+            val = *reg;
+            if (copy_to_user((void __user *)(arg + 4), (const void *)&val, 4)) {
                 printk("copy_to_user failed\n");
                 return -EFAULT;
             }
             break;
         case W8:
-            *reg = *reg | buf[1];
+            buf[1] &= 0xff;
+            *reg = buf[1];
             break;
         case W16:
-            *reg = *reg | buf[1];
+            buf[1] &= 0xffff;
+            *reg = buf[1];
             break;
         case W32:
             *reg = buf[1];
@@ -89,8 +95,8 @@ static struct file_operations debug_regeditor_ops =
 static int debug_regeditor_init(void)
 {
     major=register_chrdev(0,"debug_regeditor", &debug_regeditor_ops);
-    cls=class_create(THIS_MODULE, "dma_class");
-    cls_dev=class_device_create(cls, NULL, MKDEV(major,0),NULL, "debug_regeditor_device");    //创建dma_device设备   
+    cls=class_create(THIS_MODULE, "regeditor_class");
+    cls_dev=class_device_create(cls, NULL, MKDEV(major,0),NULL, "regeditor_dev");    //创建dma_device设备   
     return 0;
 }
 

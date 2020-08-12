@@ -41,10 +41,10 @@ ssize_t first_drv_write(struct file *file, const char __user * buf, size_t count
     int cmd[1];
     unsigned long reg_val;
     reg_val = gpf_regs->gpfcon;
-    reg_val |= (1<<8)|(1<<10)|(1<<12)|(1<<14);
-    reg_val &= ~((1<<9)|(1<<11)|(1<<13)|(1<<15));
+    reg_val |= (1<<8)|(1<<10)|(1<<12);
+    reg_val &= ~((1<<9)|(1<<11)|(1<<13));
     gpf_regs->gpfcon = reg_val;
-    printk("gpfcon: 0x%02x", gpf_regs->gpfcon);
+    printk("gpfcon: 0x%02x\n", gpf_regs->gpfcon);
 
 	if(copy_from_user(cmd, buf, count)) {
         printk("copy_to_user failed\n");
@@ -53,12 +53,12 @@ ssize_t first_drv_write(struct file *file, const char __user * buf, size_t count
     switch (cmd[0]) {
         case LEDS_OFF:
             printk("LEDS_OFF\n");
-            gpf_regs->gpfdat = 0;
+            gpf_regs->gpfdat |= (1<<4)|(1<<5)|(1<<6);
             printk("gpfdat: 0x%02x", gpf_regs->gpfdat);
             break;
         case LEDS_ON:
             printk("LEDS_ON\n");
-            gpf_regs->gpfdat = 0xf0;
+            gpf_regs->gpfdat &= ~((1<<4)|(1<<5)|(1<<6)|(1<<7));
             printk("gpfdat: 0x%02x", gpf_regs->gpfdat);
             break;
         default:
@@ -94,7 +94,7 @@ static void first_drv_exit(void)
     class_device_destroy(cls, MKDEV(major,0));
     class_destroy(cls);
     unregister_chrdev(major, "first_drv");
-    iounmap((volatile void __iomem*)GPF_BASE_ADDR);
+    iounmap((volatile void __iomem*)gpf_regs);
 }
 
 module_init(first_drv_init);

@@ -3,6 +3,10 @@
 #include <fcntl.h>
 #include <stdio.h>
 
+typedef enum {
+    LEDS_OFF,
+    LEDS_ON,
+}cmd;
 
 int main(int argc, char **argv)
 {
@@ -19,9 +23,9 @@ int main(int argc, char **argv)
         return 0;
     }
     if (!strcmp(argv[1], "on")) {
-        val[0] = 1;
+        val[0] = LEDS_ON;
     } else {
-        val[0] = 0;
+        val[0] = LEDS_OFF;
     }
 
     write(fd, val, 4);
