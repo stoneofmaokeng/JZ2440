@@ -29,7 +29,7 @@ DECLARE_WAIT_QUEUE_HEAD(dma_wait);
 static  char mybuf[100]="123";
 static int major;
 static struct class *cls;
-static volatile dma_flag;
+static volatile int dma_flag;
 
 static void *src;
 static void *dst;
