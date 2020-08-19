@@ -111,6 +111,7 @@ static unsigned int buttons_poll(struct file *filp, poll_table * wait)
 
 static int buttons_fasync(int fd, struct file *file, int on)
 {
+    printk("fasync\n");
 	return fasync_helper(fd, file, on, &buttons_async_queue);
 }
 

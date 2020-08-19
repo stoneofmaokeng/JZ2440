@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 
     fcntl(fd, F_SETOWN, getpid());
     oflag = fcntl(fd, F_GETFL);
-    fcntl(fd, oflag|FASYNC);
+    fcntl(fd, F_SETFL, oflag|FASYNC);
 
     while(1) {
         sleep(5);
