@@ -61,6 +61,56 @@ V2.09 05/24/2007	-support ethtool and mii-tool
 //#define RDBUG   /* check RX FIFO pointer */
 //#define DM8606
 
+#if 0
+#define DRV_NAME	"dm9KS"
+#define DRV_VERSION	"2.09"
+#define DRV_RELDATE	"2007-11-22"
+
+#ifdef MODVERSIONS
+#include <linux/modversions.h>
+#endif
+
+//#include <linux/config.h>
+#include <linux/init.h>				
+#include <linux/delay.h>
+#include <linux/module.h>
+#include <linux/ioport.h>
+#include <linux/netdevice.h>
+#include <linux/etherdevice.h>
+#include <linux/skbuff.h>
+#include <linux/version.h>
+#include <asm/dma.h>
+#include <linux/spinlock.h>
+#include <linux/crc32.h>
+#include <linux/mii.h>
+#include <linux/ethtool.h>
+#include <asm/uaccess.h>
+
+//#ifdef CONFIG_ARCH_MAINSTONE
+#include <asm/io.h>
+#include <asm/hardware.h>
+#include <asm/irq.h>
+//#endif
+#include <asm/delay.h>
+#include <asm/irq.h>
+#include <asm/io.h>
+#include <asm/arch-s3c2410/regs-mem.h>
+#include <linux/init.h>				
+#include <linux/delay.h>
+#include <linux/module.h>
+#include <linux/ioport.h>
+#include <linux/netdevice.h>
+#include <linux/etherdevice.h>
+#include <linux/skbuff.h>
+#include <linux/version.h>
+#include <asm/dma.h>
+#include <linux/spinlock.h>
+#include <linux/crc32.h>
+#include <linux/mii.h>
+#include <linux/ethtool.h>
+#include <asm/uaccess.h>
+#endif
+
 #define DRV_NAME	"dm9KS"
 #define DRV_VERSION	"2.09"
 #define DRV_RELDATE	"2007-11-22"
@@ -91,6 +141,12 @@ V2.09 05/24/2007	-support ethtool and mii-tool
 #include <asm/irq.h>
 #endif
 
+#if defined(CONFIG_ARCH_S3C2410)
+#include <asm/delay.h>
+#include <asm/irq.h>
+#include <asm/io.h>
+#include <asm/arch-s3c2410/regs-mem.h>
+#endif
 
 
 /* Board/System/Debug information/definition ---------------- */
@@ -408,7 +464,7 @@ int __init dmfe_probe1(struct net_device *dev)
 			db->chip_revision = ior(db, DM9KS_CHIPR);
 			
 			chip_info = ior(db,0x43);
-			if((db->chip_revision!=0x1A) || ((chip_info&(1<<5))!=0) || ((chip_info&(1<<2))!=1)) return -ENODEV;
+//			if((db->chip_revision!=0x1A) || ((chip_info&(1<<5))!=0) || ((chip_info&(1<<2))!=1)) return -ENODEV;
 						
 			/* driver system function */				
 			dev->base_addr 		= iobase;
@@ -475,7 +531,7 @@ static int dmfe_open(struct net_device *dev)
 	int i;
 	DMFE_DBUG(0, "dmfe_open", 0);
 
-	if (request_irq(dev->irq,&dmfe_interrupt,0,dev->name,dev)) 
+	if (request_irq(dev->irq,&dmfe_interrupt,IRQF_SHARED|IRQF_TRIGGER_RISING,dev->name,dev)) 
 		return -EAGAIN;
 
 	/* Initilize DM910X board */
@@ -1607,6 +1663,7 @@ static struct ethtool_ops dmfe_ethtool_ops = {
 };
 #endif
 
+#define MODULE
 #ifdef MODULE
 
 MODULE_LICENSE("GPL");
@@ -1628,8 +1685,14 @@ MODULE_PARM_DESC(iobase, "EtherLink I/O base address");
    when user used insmod to add module, system invoked init_module()
    to initilize and register.
 */
+
+#define BWSCON_BASEADDR (0x48000000)
+#define BANKCON4_BASEADDR (0x48000014)
 int __init init_module(void)
 {
+    unsigned long* bwscon_ptr;
+    unsigned long* bankcon4_ptr;
+    unsigned long reg_val;
 	switch(mode) {
 		case DM9KS_10MHD:
 		case DM9KS_100MHD:
@@ -1640,6 +1703,32 @@ int __init init_module(void)
 		default:
 			media_mode = DM9KS_AUTO;
 	}
+    iobase = ioremap(0x20000000, 1024);
+    irq = IRQ_EINT7;
+    bwscon_ptr = ioremap(BWSCON_BASEADDR, 4);
+    bankcon4_ptr = ioremap(BANKCON4_BASEADDR, 4);
+#if 1
+    reg_val = *bwscon_ptr;
+    reg_val &= ~((1<<19)|(1<<18));
+    reg_val |= (1<<16);
+    reg_val &= ~(1<<17);
+
+    reg_val = *bankcon4_ptr;
+    //tacs为0
+    reg_val &= ~((1<<13)|(1<<14));
+    //tcos为0
+    reg_val &= ~((1<<11)|(1<<12));
+    //tacc为1 需要两个时钟周期，1个时钟周期10ns，DM9000C手册要求最少10ns
+    reg_val &= ~((1<<10)|(1<<9));
+    reg_val |= (1<<8);
+    //tcoh为0
+    reg_val &= ~((1<<7)|(1<<6));
+    //tcah为0
+    reg_val &= ~((1<<5)|(1<<4));
+    //tacp不管
+    //PMC为0
+    reg_val &= ~((1<<0)|(1<<1));
+#endif
 	dmfe_dev = dmfe_probe();
 	if(IS_ERR(dmfe_dev))
 		return PTR_ERR(dmfe_dev);
@@ -1661,8 +1750,11 @@ void __exit cleanup_module(void)
 #else
 	free_netdev(dev);
 #endif
+    iounmap(iobase);
 	
 	DMFE_DBUG(0, "clean_module() exit", 0);
 }
 #endif
 
+module_init(init_module);
+module_exit(cleanup_module);
