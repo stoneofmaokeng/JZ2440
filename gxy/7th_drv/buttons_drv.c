@@ -12,6 +12,7 @@
 #include <linux/proc_fs.h>
 #include <linux/interrupt.h>
 #include <linux/poll.h>
+#include <linux/list.h>
 
 static int major;
 static volatile int buttons_flag = 0;
@@ -41,21 +42,7 @@ static struct pin_desc pins_desc[3] =
 #if 1
 irqreturn_t buttons_irq(int irq, void *devid)
 {
-    unsigned int reg;
-    struct pin_desc *ptr = devid;
-    printk("irq func\n");
-
-    reg = s3c2410_gpio_getpin(ptr->pin);
-    printk("reg = 0x%x\n", reg);
-    if (reg) {
-        key_v = ptr->key_val;
-    } else {
-        key_v = ptr->key_val|0x80;
-    }
-    //kill_fasync(&buttons_async_queue, SIGIO, POLLIN);
-
-    buttons_flag = 1;
-    wake_up_interruptible(&buttons_wait);
+    mod_timer(&timer, jiffies+HZ/100);
 	return IRQ_HANDLED;
 }
 #endif
@@ -145,14 +132,36 @@ static struct file_operations buttons_drv_ops =
     .fasync  = buttons_fasync,
 };
 
+static void timer_expired(unsigned long pins_desc)
+{
+    unsigned int reg;
+    struct pin_desc *ptr = (struct pin_desc *)pins_desc;
+    printk("timer func\n");
+    if (!pins_desc) {
+        return;
+    }
+
+    reg = s3c2410_gpio_getpin(ptr->pin);
+    printk("reg = 0x%x\n", reg);
+    if (reg) {
+        key_v = ptr->key_val;
+    } else {
+        key_v = ptr->key_val|0x80;
+    }
+
+    buttons_flag = 1;
+    wake_up_interruptible(&buttons_wait);
+}
+
 
 static int buttons_drv_init(void)
 {
 	init_timer(&timer);
+	timer.data     = (unsigned long)pins_desc;
 	timer.expires  = jiffies + 10*HZ;   /* 10s */
 	timer.function = (void (*)(unsigned long)) timer_expired;
-
 	add_timer(&timer);
+
     major=register_chrdev(0,"buttons_drv", &buttons_drv_ops);
     cls=class_create(THIS_MODULE, "buttons_drv_class");
     class_device_create(cls, NULL, MKDEV(major,0),NULL, "buttons");    //创建dma_device设备   

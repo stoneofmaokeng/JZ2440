@@ -33,7 +33,6 @@ int main(int argc, char **argv)
     while(1) {
         ret =read(fd, &key_val, sizeof(key_val));
         printf("key_val = 0x%x, ret = %d\n", key_val, ret);
-        sleep(2);
     }
     close(fd);
     return 0;
