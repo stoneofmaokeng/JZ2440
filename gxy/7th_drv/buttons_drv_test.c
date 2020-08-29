@@ -23,8 +23,8 @@ int main(int argc, char **argv)
         print_usage(argv[0]);
         return 0;
     }
-    fd = open("/dev/buttons", O_RDWR|O_NONBLOCK);
-//    fd = open("/dev/buttons", O_RDWR);
+//    fd = open("/dev/buttons", O_RDWR|O_NONBLOCK);
+    fd = open("/dev/buttons", O_RDWR);
     if (fd < 0) {
         printf("can't open!\n");
         return -1;

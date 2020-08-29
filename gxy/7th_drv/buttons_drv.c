@@ -39,9 +39,12 @@ static struct pin_desc pins_desc[3] =
     {S3C2410_GPG3, 0x03},
 };
 
+static struct pin_desc* irq_data;
+
 #if 1
 irqreturn_t buttons_irq(int irq, void *devid)
 {
+    irq_data = (struct pin_desc *)devid;
     mod_timer(&timer, jiffies+HZ/100);
 	return IRQ_HANDLED;
 }
@@ -90,7 +93,7 @@ static ssize_t buttons_drv_read(struct file *filep, char __user *buf, size_t cou
         wait_event_interruptible(buttons_wait, buttons_flag);
     }
     buttons_flag = 0;
-    if (copy_to_user(buf, (const void*)&key_v, 4)); 
+    if (copy_to_user(buf, (const void*)&key_v, 4)) 
         return -EFAULT;
 
     return count;
@@ -132,21 +135,20 @@ static struct file_operations buttons_drv_ops =
     .fasync  = buttons_fasync,
 };
 
-static void timer_expired(unsigned long pins_desc)
+static void timer_expired(unsigned long data)
 {
     unsigned int reg;
-    struct pin_desc *ptr = (struct pin_desc *)pins_desc;
     printk("timer func\n");
-    if (!pins_desc) {
+    if (!irq_data) {
         return;
     }
 
-    reg = s3c2410_gpio_getpin(ptr->pin);
+    reg = s3c2410_gpio_getpin(irq_data->pin);
     printk("reg = 0x%x\n", reg);
     if (reg) {
-        key_v = ptr->key_val;
+        key_v = irq_data->key_val;
     } else {
-        key_v = ptr->key_val|0x80;
+        key_v = irq_data->key_val|0x80;
     }
 
     buttons_flag = 1;
@@ -157,8 +159,8 @@ static void timer_expired(unsigned long pins_desc)
 static int buttons_drv_init(void)
 {
 	init_timer(&timer);
-	timer.data     = (unsigned long)pins_desc;
-	timer.expires  = jiffies + 10*HZ;   /* 10s */
+//	timer.data     = (unsigned long)pins_desc;
+//	timer.expires  = jiffies + HZ/100;   /* 10s */
 	timer.function = (void (*)(unsigned long)) timer_expired;
 	add_timer(&timer);
 

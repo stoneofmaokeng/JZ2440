@@ -94,6 +94,7 @@ static int led_probe(struct platform_device *led_dev)
     major=register_chrdev(0,"led_drv", &led_drv_ops);
     cls=class_create(THIS_MODULE, "led_drv_class");
     class_device_create(cls, NULL, MKDEV(major,0),NULL, "led_drv_device");    //创建dma_device设备   
+    return 0;
 }
 
 static int led_remove(struct platform_device *led_dev)
@@ -102,6 +103,7 @@ static int led_remove(struct platform_device *led_dev)
     class_destroy(cls);
     unregister_chrdev(major, "led_drv");
     iounmap((volatile void __iomem*)gpf_regs);
+    return 0;
 }
 
 static struct platform_driver led_driver = {
@@ -115,11 +117,13 @@ static struct platform_driver led_driver = {
 
 static int led_drv_init(void)
 {
+    platform_driver_register(&led_driver);
     return 0;
 }
 
 static void led_drv_exit(void)
 {
+    platform_driver_unregister(&led_driver);
 }
 
 module_init(led_drv_init);

@@ -13,7 +13,7 @@ int main(int argc, char **argv)
     int fd;
     int i;
     int val[1];
-    fd = open("/dev/first_drv_device", O_RDWR);
+    fd = open("/dev/led_drv_device", O_RDWR);
     if (fd < 0) {
         printf("can't open!\n");
     }
